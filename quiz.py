@@ -1,10 +1,8 @@
-# quiz.py
 import os, json
 from config import DATA_DIR, QUIZ_FILE
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# GÜNCELLENMİŞ TÜRKİYE MÜFREDATINA UYGUN SORULAR
 QUIZ_QUESTIONS = {
     "8.sınıf": {
         "Matematik": [
@@ -143,12 +141,45 @@ QUIZ_QUESTIONS = {
     }
 }
 
-def save_score(user_id, score):
-    data = {}
+def load_scores():
+    """Skorları JSON dosyasından okur."""
     if os.path.exists(QUIZ_FILE):
         with open(QUIZ_FILE, "r", encoding="utf-8") as f:
-            try: data = json.load(f)
-            except: data = {}
-    data[str(user_id)] = score
+            try:
+                content = f.read()
+                if not content:
+                    return {}
+                f.seek(0)
+                return json.load(f)
+            except json.JSONDecodeError:
+                return {}
+    return {}
+
+
+def save_score(user_id, new_score):
+    """
+    Kullanıcının skorunu kaydeder.
+    Yeni skor, mevcut skordan yüksekse günceller (Sizin kodunuzdaki hata düzeltildi).
+    """
+    os.makedirs(DATA_DIR, exist_ok=True)
+    scores = load_scores()
+    
+    user_id_str = str(user_id)
+    current_best = scores.get(user_id_str, 0)
+
+    if new_score > current_best:
+        scores[user_id_str] = new_score
+    
     with open(QUIZ_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+        json.dump(scores, f, ensure_ascii=False, indent=4)
+
+
+def get_top_scores(limit=10):
+    """
+    En yüksek skorları sıralar ve ilk 'limit' kadarını döndürür. (Bot.py'deki import için eklendi)
+    :return: [(user_id, score), ...] şeklinde sıralı liste.
+    """
+    scores = load_scores()
+    sorted_scores = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    
+    return sorted_scores[:limit]
