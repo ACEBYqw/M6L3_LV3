@@ -35,11 +35,6 @@ def youtube_search_single(query, max_results=3):
 def youtube_search_comprehensive(class_name, lesson_name, topic_names):
     """
     Belirli bir sınıf ve dersin tüm konu başlıklarını arar ve sonuçlara genel tekrar videosu ekler.
-    
-    :param class_name: Seçilen sınıf adı (örn: "10.sınıf")
-    :param lesson_name: Seçilen ders adı (örn: "Kimya")
-    :param topic_names: O derse ait tüm ana konu başlıklarının listesi (örn: ["Mol Kavramı", "Asitler, Bazlar..."])
-    :return: Toplam video listesi
     """
     all_videos = []
     
@@ -73,6 +68,56 @@ def save_videos(query, videos):
                 data = json.load(f)
             except:
                 data = {}
+    
     data[query] = videos
+    
     with open(VIDEOS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+
+def get_saved_videos():
+    """
+    Kaydedilmiş video listesini JSON dosyasından okur. 
+    Sadece en son yapılan aramanın sonuçlarını döndürür.
+    """
+    if os.path.exists(VIDEOS_FILE):
+        with open(VIDEOS_FILE, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+                if data:
+                    latest_key = list(data.keys())[-1]
+                    return data[latest_key]
+                return []
+            except:
+                return []
+    return []
+
+def delete_saved_video(index):
+    """
+    En son kaydedilen arama sonuçlarından belirtilen indeksteki videoyu siler.
+    :param index: Silinecek videonun indeksi (1 tabanlı).
+    :return: Başarılıysa True, değilse False.
+    """
+    if not os.path.exists(VIDEOS_FILE):
+        return False
+
+    with open(VIDEOS_FILE, "r", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except:
+            return False
+
+    if not data:
+        return False
+
+    latest_key = list(data.keys())[-1]
+    videos = data[latest_key]
+
+    if 1 <= index <= len(videos):
+        del videos[index - 1]
+        
+        data[latest_key] = videos
+        with open(VIDEOS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        return True
+    
+    return False
