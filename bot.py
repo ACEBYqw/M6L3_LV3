@@ -1,4 +1,4 @@
-import discord, asyncio, re
+import discord, asyncio, re, random 
 from discord.ext import commands
 from discord.ui import Select, View, Button
 from config import DISCORD_TOKEN
@@ -32,8 +32,9 @@ class CustomHelp(commands.HelpCommand):
         embed.add_field(name="🔎 !ara [sorgu]", value="Direkt olarak bir arama yaparak **YouTube videosu** önerir.", inline=False)
         embed.add_field(name="🗑️ !video_sil [index]", value="Kaydedilen son arama videolarını siler.", inline=False)
         embed.add_field(name="❌ !hatirlatma_sil [index]", value="Ayarlanan aktif hatırlatmalardan birini siler.", inline=False)
+        embed.add_field(name="💡 !hakkinda / !bilgi", value="Botun misyonu ve geliştiricisi hakkında bilgi verir.", inline=False)
         embed.set_thumbnail(url=bot.user.avatar.url)
-        embed.set_footer(text="Geliştirme: Yapay Zeka Destekli Öğrenme | İyi Çalışmalar!")
+        embed.set_footer(text="Geliştirme: Öğrenme Platformu | İyi Çalışmalar!") 
         
         await self.get_destination().send(embed=embed)
 
@@ -69,19 +70,34 @@ async def anasayfa(ctx):
         async def class_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
             await interaction.response.edit_message(content="Sınıf seçimi başlatılıyor...", embed=None, view=None)
             await sinif(ctx)
-
     embed = discord.Embed(
-        title="✨ Akıllı Öğrenme Asistanı Bot'a Hoş Geldiniz! ✨",
-        description="Merhaba! Ben ders çalışma ve öğrenme süreçlerini destekleyen asistanınızım.\n\n`!yardim` ile tüm komutları görebilirsiniz.",
+        title="🧠 Bilgi Seninle! Öğrenme Asistanı", 
+        description="**Amacım:** Ders çalışma sürecini **Quiz**, **Video Önerisi** ve **Hatırlatmalar** ile destekleyerek en verimli hale getirmektir.\n\n"
+                    "Lütfen menüleri kullanın veya **`!yardim`** ile komutlara göz atın. **Başarılar!**",
         color=EMBED_COLOR,
         timestamp=datetime.now()
     )
-    embed.set_author(name=f"{bot.user.name}", icon_url=bot.user.avatar.url)
+    embed.set_author(name=f"Asistan {bot.user.name}", icon_url=bot.user.avatar.url)
     embed.set_thumbnail(url="https://i.imgur.com/k9vY9nE.png") 
-    embed.set_footer(text="Geliştirme: Yapay Zeka Destekli Öğrenme | İyi Çalışmalar!")
+    embed.set_footer(text="Geliştirme: Öğrenme Platformu | ✨ Öğrenmek asla bitmez.")
 
     await ctx.send(embed=embed, view=HomeView(ctx.author))
-
+@bot.command(name="hakkinda", aliases=["bilgi", "about"])
+async def hakkinda(ctx):
+    embed = discord.Embed(
+        title="🤖 Öğrenme Asistanı (Sürüm 1.0)", 
+        description="Ben, ders çalışma ve öğrenme süreçlerinizi kolaylaştırmak için tasarlanmış bir Discord botuyum.\n\n"
+                    "**Ana Özellikler:**\n"
+                    "* Konu/Sınıf Bazlı YouTube Video Önerileri (`!sinif`)\n"
+                    "* Çoktan Seçmeli Kısa Sınavlar (`!quiz`)\n"
+                    "* Zamanlanmış Ders Hatırlatmaları (`!hatirlat`)\n"
+                    "* Liderlik Tablosu (`!skor`)\n\n"
+                    "**Geliştirici:** Ali Eymen ve Onur Aydın", 
+        color=0x9b59b6, 
+        timestamp=datetime.now()
+    )
+    embed.set_thumbnail(url=bot.user.avatar.url)
+    await ctx.send(embed=embed)
 
 
 @bot.command()
@@ -187,13 +203,24 @@ async def quiz_skor(ctx):
     else:
         rank_text = ""
         for i, (user_id, score) in enumerate(top_scores[:10]):
+            
+            emoji = ""
+            if i == 0:
+                emoji = "🥇"
+            elif i == 1:
+                emoji = "🥈"
+            elif i == 2:
+                emoji = "🥉"
+            else:
+                emoji = "👤"
+                
             try:
                 user = await bot.fetch_user(user_id)
                 username = user.name
             except:
                 username = f"Kullanıcı ID: {user_id}"
                 
-            rank_text += f"**#{i+1}** - **{username}**: {score} Puan\n"
+            rank_text += f"{emoji} **#{i+1}** - {username}: **{score} Puan**\n"
         
         embed.add_field(name="Liderlik Tablosu", value=rank_text, inline=False)
         embed.set_thumbnail(url=bot.user.avatar.url)
@@ -232,13 +259,19 @@ async def quiz(ctx, sinif: str, konu: str):
             answer_idx = int(msg.content)-1
             
             if q["options"][answer_idx] == q["answer"]:
-                await ctx.send("✅ **Doğru!** (+10 Puan)")
+                correct_feedback = random.choice([
+                    "✅ **Müthiş!** Bir sonraki seviyeye geçtin! (+10 Puan)",
+                    "🌟 **Bravo!** Tam isabet! (+10 Puan)",
+                    "💯 **Doğru Bildin!** Bilgini konuşturuyorsun. (+10 Puan)",
+                    "🔥 **Harikasın!** İşte budur! (+10 Puan)"
+                ])
+                await ctx.send(correct_feedback)
                 score += 10
             else:
-                await ctx.send(f"❌ **Yanlış!** Doğru cevap: **{q['answer']}**")
+                await ctx.send(f"❌ **Olsun, Bir Daha Dene!** Doğru cevap: **{q['answer']}**. Unutma, yanlışlar öğrenme basamağıdır.")
                 
         except asyncio.TimeoutError:
-            await ctx.send(f"⌛ Süre doldu! Doğru cevap: **{q['answer']}**")
+            await ctx.send(f"💤 **Çok Yavaş!** Süre doldu. Doğru cevap: **{q['answer']}**")
             
         await asyncio.sleep(1)
         
